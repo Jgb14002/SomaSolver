@@ -1,0 +1,12 @@
+Features:
+
+soma-solver depends on soma-viewer -> access to viewer from controller
+
+- Import structure -> playback piece by piece
+- Export structure to file
+
+- Lock in pieces -> piece by piece, order is preserved
+
+- Log windows -> displays infomation
+- Solve button
+- Reset viewer -> clears current structure
