@@ -67,8 +67,6 @@ public class SomaScene extends Scene
 	{
 		PostProcessing.init();
 		createUI();
-
-		SolutionManager.getSolutions().get(0).getPieces().forEach(this::addPiece);
 	}
 
 	@Override
@@ -153,10 +151,6 @@ public class SomaScene extends Scene
 		{
 			selectedPiece.rotate(GameObject.Axis.Z_AXIS);
 		}
-		if(Input.isKeyPressed(GLFW_KEY_0))
-		{
-			log.info("{}", SolutionManager.getPossibleSolutionCount(pieces.values()));
-		}
 	}
 
 	@Override
@@ -186,6 +180,11 @@ public class SomaScene extends Scene
 		final PieceIndex index = piece.getPieceIndex();
 		pieces.put(index, piece);
 		SceneLoader.getEventBus().post(new PieceAddedEvent(index));
+	}
+
+	public void removePiece(PieceIndex index)
+	{
+		pieces.remove(index);
 	}
 
 	@Subscribe

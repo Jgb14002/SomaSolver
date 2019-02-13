@@ -127,6 +127,7 @@ public class UIController
 	private File solverExportDir;
 	private File replayFile;
 	private Map<Integer, int[][][]> importedStructure;
+	private int importedIndex = -1;
 
 
 	public UIController()
@@ -345,6 +346,7 @@ public class UIController
 			solverTable.getItems().clear();
 		});
 		solverResetButton.setOnAction(e -> {
+			importedIndex = -1;
 			solverTable.getItems().clear();
 			SceneLoader.getCurrentScene().reset();
 			log("Reset current structure");
@@ -372,8 +374,9 @@ public class UIController
 						tableItems.clear();
 
 						SceneLoader.getCurrentScene().reset();
-						importedStructure.keySet().forEach(index -> tableItems.add(new PieceEntry(index)));
+						importedStructure.keySet().forEach(index -> tableItems.add(new PieceEntry(index + 1)));
 						alert("Solution Playback", "Successfully imported structure", Alert.AlertType.INFORMATION);
+						importedIndex = -1;
 					}
 					catch (IOException e1)
 					{
@@ -387,7 +390,17 @@ public class UIController
 		replayLoadButton.setOnAction(e -> {
 			if(importedStructure != null)
 			{
-
+				final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
+				scene.reset();
+				scene.getTaskQueue().add(() -> {
+					importedStructure.forEach((k, v) ->
+					{
+						final PieceIndex index = PieceIndex.getPieceFromIndex(k);
+						scene.getPieces().put(index, Piece.createFromData(index, v));
+					});
+				});
+				log("Loaded structure from data file");
+				importedIndex = -1;
 			}
 			else
 			{
@@ -395,11 +408,54 @@ public class UIController
 			}
 		});
 		replayNextButton.setOnAction(e -> {
+			if(importedStructure != null)
+			{
+				final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
+				scene.getTaskQueue().add(() -> {
+
+					if(importedIndex + 1 > importedStructure.size() - 1)
+					{
+						return;
+					}
+
+					importedIndex++;
+
+					final Map.Entry<Integer, int[][][]> piece = getElementAt(importedStructure, importedIndex);
+					final PieceIndex index = PieceIndex.getPieceFromIndex(piece.getKey());
+					scene.addPiece(Piece.createFromData(index, piece.getValue()));
+				});
+			}
+			else
+			{
+				alert("Solution Playback", "You have not yet imported a data file.", Alert.AlertType.ERROR);
+			}
 		});
 		replayUndoButton.setOnAction(e -> {
+			if(importedStructure != null)
+			{
+				final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
+				scene.getTaskQueue().add(() -> {
+
+					if(importedIndex < 0)
+					{
+						return;
+					}
+
+					final Map.Entry<Integer, int[][][]> piece = getElementAt(importedStructure, importedIndex);
+					final PieceIndex index = PieceIndex.getPieceFromIndex(piece.getKey());
+					scene.removePiece(index);
+
+					importedIndex--;
+				});
+			}
+			else
+			{
+				alert("Solution Playback", "You have not yet imported a data file.", Alert.AlertType.ERROR);
+			}
 		});
 		replayResetButton.setOnAction(e -> {
 			SceneLoader.getCurrentScene().reset();
+			importedIndex = -1;
 			log("Reset current structure");
 		});
 
@@ -423,6 +479,11 @@ public class UIController
 			int index = explorerTable.getSelectionModel().getSelectedIndex();
 			final int next = index + 1;
 
+			if(next >= explorerTable.getItems().size())
+			{
+				return;
+			}
+
 			Platform.runLater(() -> {
 				selectRow(explorerTable, next);
 				loadSolution(next);
@@ -439,13 +500,24 @@ public class UIController
 
 		});
 		explorerResetButton.setOnAction(e -> {
+			importedIndex = -1;
 			SceneLoader.getCurrentScene().reset();
 			log("Reset current structure");
 		});
 	}
 
+	private static Map.Entry<Integer, int[][][]> getElementAt(Map<Integer, int[][][]> map, int index) {
+		for (Map.Entry entry : map.entrySet()) {
+			if (index-- == 0) {
+				return entry;
+			}
+		}
+		return null;
+	}
+
 	private void loadSolution(int index)
 	{
+		importedIndex = -1;
 		SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
 		scene.getTaskQueue().add(() -> scene.loadSolution(index));
 		log(String.format("Loaded solution %d", index));
