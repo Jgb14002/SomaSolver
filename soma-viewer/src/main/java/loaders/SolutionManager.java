@@ -39,7 +39,7 @@ public class SolutionManager
 			int sliceIndex = 0;
 			int row = 0;
 
-			BufferedReader reader = new BufferedReader(new InputStreamReader(new ResourceFile("soma", "solutions.soma").getInputStream()));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(SolutionManager.class.getResourceAsStream("/soma/solutions.soma")));
 			String line;
 			while ((line = reader.readLine()) != null)
 			{

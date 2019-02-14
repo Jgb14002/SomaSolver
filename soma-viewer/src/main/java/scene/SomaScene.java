@@ -86,8 +86,8 @@ public class SomaScene extends Scene
 
 		sky.render(getCamera());
 		uiElements.forEach(UIElement::render);
-		floor.render(getCamera());
 		pieces.values().forEach(piece -> piece.render(getCamera()));
+		floor.render(getCamera());
 
 		multisampleFbo.unbindFrameBuffer();
 		multisampleFbo.resolveToFbo(outputFbo);

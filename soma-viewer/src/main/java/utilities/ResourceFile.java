@@ -26,12 +26,12 @@ public class ResourceFile
 
 	public String getFullPath()
 	{
-		return (path == null) ? fileName : String.format("%s%s%s", path, File.separator, fileName);
+		return (path == null) ? "/" + fileName : "/" + path + "/" + fileName;
 	}
 
 	public InputStream getInputStream()
 	{
-		return ResourceFile.class.getClassLoader().getResourceAsStream(getFullPath());
+		return ResourceFile.class.getResourceAsStream(getFullPath());
 	}
 
 	public BufferedReader getReader()

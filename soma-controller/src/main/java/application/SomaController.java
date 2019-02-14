@@ -1,7 +1,6 @@
 package application;
 
 import controllers.UIController;
-import java.util.Objects;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -13,7 +12,8 @@ public class SomaController extends Application
 	@Override
 	public void start(Stage stage) throws Exception
 	{
-		FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getClassLoader().getResource("views/ui.fxml")));
+		FXMLLoader loader = new FXMLLoader();
+		loader.setLocation(SomaController.class.getResource("/views/ui.fxml"));
 		stage.getIcons().add(new Image(SomaController.class.getResourceAsStream("/images/icon.png")));
 		stage.setTitle("Soma Solver - Controller");
 		stage.setResizable(false);

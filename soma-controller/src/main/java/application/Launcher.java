@@ -6,10 +6,10 @@ public class Launcher
 {
 	public static void main(String[] args)
 	{
-		final Thread controllerThread = new Thread(() -> launcher.Launcher.main(args));
-		final Thread viewerThread = new Thread(() -> Application.launch(SomaController.class, args));
-
+		final Thread controllerThread = new Thread(() -> Application.launch(SomaController.class, args));
+		controllerThread.setDaemon(true);
 		controllerThread.start();
-		viewerThread.start();
+
+		launcher.Launcher.main(args);
 	}
 }
