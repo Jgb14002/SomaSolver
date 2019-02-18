@@ -390,6 +390,7 @@ public class UIController
 		replayLoadButton.setOnAction(e -> {
 			if(importedStructure != null)
 			{
+				solverTable.getItems().clear();
 				final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
 				scene.reset();
 				scene.getTaskQueue().add(() -> {
@@ -422,7 +423,8 @@ public class UIController
 
 					final Map.Entry<Integer, int[][][]> piece = getElementAt(importedStructure, importedIndex);
 					final PieceIndex index = PieceIndex.getPieceFromIndex(piece.getKey());
-					scene.addPiece(Piece.createFromData(index, piece.getValue()));
+					scene.getPieces().put(index, Piece.createFromData(index, piece.getValue()));
+
 				});
 			}
 			else
@@ -444,7 +446,6 @@ public class UIController
 					final Map.Entry<Integer, int[][][]> piece = getElementAt(importedStructure, importedIndex);
 					final PieceIndex index = PieceIndex.getPieceFromIndex(piece.getKey());
 					scene.removePiece(index);
-
 					importedIndex--;
 				});
 			}
@@ -455,6 +456,7 @@ public class UIController
 		});
 		replayResetButton.setOnAction(e -> {
 			SceneLoader.getCurrentScene().reset();
+			solverTable.getItems().clear();
 			importedIndex = -1;
 			log("Reset current structure");
 		});
@@ -500,6 +502,8 @@ public class UIController
 
 		});
 		explorerResetButton.setOnAction(e -> {
+			replayTable.getItems().clear();
+			solverTable.getItems().clear();
 			importedIndex = -1;
 			SceneLoader.getCurrentScene().reset();
 			log("Reset current structure");
@@ -517,7 +521,10 @@ public class UIController
 
 	private void loadSolution(int index)
 	{
+		replayTable.getItems().clear();
+		solverTable.getItems().clear();
 		importedIndex = -1;
+
 		SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
 		scene.getTaskQueue().add(() -> scene.loadSolution(index));
 		log(String.format("Loaded solution %d", index));
