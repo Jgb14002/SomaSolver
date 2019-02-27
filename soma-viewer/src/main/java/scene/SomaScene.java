@@ -23,22 +23,14 @@ import loaders.SolutionManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.joml.Vector2f;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_0;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_A;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_D;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_F;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_R;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_S;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_W;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_X;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_Y;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_Z;
 import processing.Fbo;
 import processing.PostProcessing;
 import shaders.FloorShader;
 import shaders.GUIShader;
 import shaders.SimpleShader;
 import shaders.SkyboxShader;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 @Slf4j
 public class SomaScene extends Scene

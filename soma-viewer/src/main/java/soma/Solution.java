@@ -42,4 +42,11 @@ public class Solution
 		}
 		return true;
 	}
+
+	public void invert()
+	{
+		int[][][] tmp = rawData[5];
+		rawData[5] = rawData[6];
+		rawData[6] = tmp;
+	}
 }

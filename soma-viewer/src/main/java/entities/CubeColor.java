@@ -12,8 +12,8 @@ public enum CubeColor
 	RED(2, new Vector4f(1f, 0.341f, 0.341f, 1f)),
 	GREEN(3, new Vector4f(0.454f, 1f, 0.341f, 1f)),
 	WHITE(4, new Vector4f(1f, 1f, 1f, 1f)),
-	PURPLE(5, new Vector4f(0.803f, 0.341f, 1f, 1f)),
-	YELLOW(6, new Vector4f(1f, 0.941f, 0.341f, 1f));
+	YELLOW(5, new Vector4f(1f, 0.941f, 0.341f, 1f)),
+	PURPLE(6, new Vector4f(0.803f, 0.341f, 1f, 1f));
 
 	@Getter
 	private final Vector4f color;

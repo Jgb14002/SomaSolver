@@ -16,8 +16,8 @@ public enum PieceIndex
 	PIECE_THREE(2, new int[] {-1,0,0, 0,0,0, 0,-1,0, 1,-1,0}, new ResourceFile(GeneralSettings.TEXTURE_FOLDER, "ui_piece_three.png")),
 	PIECE_FOUR(3, new int[] {-1,-1,0, 0,-1,0, 0,0,0, 1,-1,0}, new ResourceFile(GeneralSettings.TEXTURE_FOLDER, "ui_piece_four.png")),
 	PIECE_FIVE(4, new int[] {0,-1,0, 0,0,0, 1,-1,0, 0,-1,1}, new ResourceFile(GeneralSettings.TEXTURE_FOLDER, "ui_piece_five.png")),
-	PIECE_SIX(5, new int[] {0,-1,0, 0,0,0, 0,0,1, 1,-1,0}, new ResourceFile(GeneralSettings.TEXTURE_FOLDER, "ui_piece_six.png")),
-	PIECE_SEVEN(6, new int[] {0,-1,0, 1,0,0, 1,0,1, 1,-1,0}, new ResourceFile(GeneralSettings.TEXTURE_FOLDER, "ui_piece_seven.png"));
+	PIECE_SIX(5, new int[] {0,-1,0, 1,0,0, 1,0,1, 1,-1,0}, new ResourceFile(GeneralSettings.TEXTURE_FOLDER, "ui_piece_six.png")),
+	PIECE_SEVEN(6, new int[] {0,-1,0, 0,0,0, 0,0,1, 1,-1,0}, new ResourceFile(GeneralSettings.TEXTURE_FOLDER, "ui_piece_seven.png"));
 
 	@Getter
 	private final int index;
