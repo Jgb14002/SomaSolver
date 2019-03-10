@@ -52,14 +52,8 @@ public class SomaScene extends Scene
 	private final Map<PieceIndex, Piece> pieces = new HashMap<>();
 	private Piece selectedPiece;
 
-	public static List<Cube> cubes = new ArrayList<>();
-
 	@Getter
 	private final ConcurrentLinkedQueue<Runnable> taskQueue = new ConcurrentLinkedQueue<>();
-
-	private List<Piece> testPieces = new LinkedList<>();
-	private Piece testPiece;
-	private int testIndex = 0;
 
 	SomaScene(ICamera camera)
 	{
@@ -91,9 +85,6 @@ public class SomaScene extends Scene
 		sky.render(getCamera());
 		uiElements.forEach(UIElement::render);
 		pieces.values().forEach(piece -> piece.render(getCamera()));
-		cubes.forEach(cube -> cube.render(getCamera()));
-		if(testPiece != null)
-			testPiece.render(getCamera());
 		floor.render(getCamera());
 
 		multisampleFbo.unbindFrameBuffer();
@@ -131,38 +122,6 @@ public class SomaScene extends Scene
 	public void processInput()
 	{
 		getCamera().update();
-
-		if(Input.isKeyPressed(GLFW_KEY_O))
-		{
-			StringBuilder sb = new StringBuilder();
-			int[][][] layout = getLayout();
-			for(int i = 0; i < 3; i++)
-			{
-				for(int j = 0; j < 3; j++)
-				{
-					for(int k = 0; k < 3; k++)
-					{
-						sb.append(layout[i][j][k]);
-					}
-					sb.append(System.lineSeparator());
-				}
-				sb.append(System.lineSeparator());
-			}
-			System.out.println(sb.toString());
-
-			testPieces =  new GraphBuilder(layout).build().getPieces(PieceIndex.PIECE_ONE);
-		}
-
-		if(Input.isKeyPressed(GLFW_KEY_L))
-		{
-			if(testPieces != null && testPieces.size() > 0)
-			{
-				if(testIndex == testPieces.size())
-					testIndex = 0;
-				testPiece = testPieces.get(testIndex);
-				testIndex++;
-			}
-		}
 
 		if(selectedPiece == null)
 		{

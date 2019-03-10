@@ -4,11 +4,8 @@ import entities.Cube;
 import entities.CubeColor;
 import entities.Piece;
 import entities.PieceIndex;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
 import javax.annotation.Nullable;
 
 public class GraphBuilder
@@ -62,13 +59,6 @@ public class GraphBuilder
 			return;
 		}
 
-		if (traversed.contains(node))
-		{
-			return;
-		}
-
-		traversed.add(node);
-
 		for (Direction dir : Direction.values())
 		{
 			int y = node.y + dir.y;
@@ -77,13 +67,22 @@ public class GraphBuilder
 
 			if ((y >= 0 && y < 3) && (x >= 0 && x < 3) && (z >= 0 && z < 3))
 			{
-				final Node next = new Node(y, x, z);
+				Optional<Node> existing = traversed.stream().filter(present -> present.y == y && present.x == x && present.z == z)
+						.findFirst();
+				final Node next = existing.orElseGet(() -> new Node(y, x, z));
 				if (layout[next.y][next.x][next.z] == 0)
 				{
 					node.addNeighbor(dir, next);
 				}
 			}
 		}
+
+		if (traversed.contains(node))
+		{
+			return;
+		}
+
+		traversed.add(node);
 
 		for (Node child : node.getNeighbors().values())
 		{
@@ -95,7 +94,7 @@ public class GraphBuilder
 	{
 		List<Piece> pieces = new LinkedList<>();
 
-		PathTransformer transformer = new PathTransformer(Direction.RIGHT, Direction.UP, Direction.RIGHT);
+		PathTransformer transformer = new PathTransformer(index.getPath());
 		Set<List<Direction>> paths = transformer.transform();
 
 		for (Node node : traversed)
@@ -104,7 +103,7 @@ public class GraphBuilder
 				if (node.canFollowPath(new Path(transformedPath)))
 				{
 					List<Cube> cubes = new ArrayList<>();
-					//cubes.add(node.toCube(CubeColor.WHITE));
+					cubes.add(node.toCube(CubeColor.ORANGE));
 					Node parent = node;
 					for (Direction dir : transformedPath)
 					{
@@ -115,7 +114,7 @@ public class GraphBuilder
 							parent = neighbor;
 						}
 					}
-					pieces.add(new Piece(PieceIndex.PIECE_ONE, cubes));
+					pieces.add(new Piece(index, cubes));
 				}
 			});
 		}

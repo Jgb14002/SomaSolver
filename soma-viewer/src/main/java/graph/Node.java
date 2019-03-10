@@ -5,12 +5,17 @@ import entities.CubeColor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.joml.Vector3i;
 
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Node
 {
+	@EqualsAndHashCode.Include
 	protected final int x, y, z;
+
 	@Getter
 	private final Map<Direction, Node> neighbors;
 
@@ -49,26 +54,4 @@ public class Node
 		return Cube.create(color, new Vector3i(z - 1, 1 - y, x - 1));
 	}
 
-	@Override
-	public int hashCode()
-	{
-		return Objects.hash(x, y, z);
-	}
-
-	@Override
-	public boolean equals(Object o)
-	{
-		if (this == o)
-		{
-			return true;
-		}
-		if (o == null || getClass() != o.getClass())
-		{
-			return false;
-		}
-		Node node = (Node) o;
-		return x == node.x &&
-			y == node.y &&
-			z == node.z;
-	}
 }
