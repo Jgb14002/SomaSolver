@@ -1,6 +1,7 @@
 package scene;
 
 import com.google.common.eventbus.Subscribe;
+import entities.Cube;
 import entities.Floor;
 import entities.GameObject;
 import entities.Piece;
@@ -9,10 +10,14 @@ import entities.Sky;
 import events.PieceAddedEvent;
 import events.PieceDeletedEvent;
 import events.PieceWidgetClickedEvent;
+import graph.Direction;
+import graph.GraphBuilder;
+import graph.Node;
 import gui.GridPanel;
 import gui.PieceWidget;
 import gui.UIElement;
 import input.Input;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,6 +28,7 @@ import loaders.SolutionManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.joml.Vector2f;
+import org.joml.Vector3i;
 import processing.Fbo;
 import processing.PostProcessing;
 import shaders.FloorShader;
@@ -46,8 +52,14 @@ public class SomaScene extends Scene
 	private final Map<PieceIndex, Piece> pieces = new HashMap<>();
 	private Piece selectedPiece;
 
+	public static List<Cube> cubes = new ArrayList<>();
+
 	@Getter
 	private final ConcurrentLinkedQueue<Runnable> taskQueue = new ConcurrentLinkedQueue<>();
+
+	private List<Piece> testPieces = new LinkedList<>();
+	private Piece testPiece;
+	private int testIndex = 0;
 
 	SomaScene(ICamera camera)
 	{
@@ -79,6 +91,9 @@ public class SomaScene extends Scene
 		sky.render(getCamera());
 		uiElements.forEach(UIElement::render);
 		pieces.values().forEach(piece -> piece.render(getCamera()));
+		cubes.forEach(cube -> cube.render(getCamera()));
+		if(testPiece != null)
+			testPiece.render(getCamera());
 		floor.render(getCamera());
 
 		multisampleFbo.unbindFrameBuffer();
@@ -98,10 +113,57 @@ public class SomaScene extends Scene
 		outputFbo.cleanUp();
 	}
 
+	private int[][][] getLayout()
+	{
+		final int[][][] layout = new int[3][3][3];
+
+		for(Piece piece : pieces.values())
+		{
+			piece.getCubes().forEach(cube -> {
+				final Vector3i grid = cube.getGridPosition();
+				layout[1 - grid.y][grid.z + 1][grid.x + 1] = 1;
+			});
+		}
+		return layout;
+	}
+
 	@Override
 	public void processInput()
 	{
 		getCamera().update();
+
+		if(Input.isKeyPressed(GLFW_KEY_O))
+		{
+			StringBuilder sb = new StringBuilder();
+			int[][][] layout = getLayout();
+			for(int i = 0; i < 3; i++)
+			{
+				for(int j = 0; j < 3; j++)
+				{
+					for(int k = 0; k < 3; k++)
+					{
+						sb.append(layout[i][j][k]);
+					}
+					sb.append(System.lineSeparator());
+				}
+				sb.append(System.lineSeparator());
+			}
+			System.out.println(sb.toString());
+
+			testPieces =  new GraphBuilder(layout).build().getPieces(PieceIndex.PIECE_ONE);
+		}
+
+		if(Input.isKeyPressed(GLFW_KEY_L))
+		{
+			if(testPieces != null && testPieces.size() > 0)
+			{
+				if(testIndex == testPieces.size())
+					testIndex = 0;
+				testPiece = testPieces.get(testIndex);
+				testIndex++;
+			}
+		}
+
 		if(selectedPiece == null)
 		{
 			return;
@@ -144,6 +206,8 @@ public class SomaScene extends Scene
 			selectedPiece.rotate(GameObject.Axis.Z_AXIS);
 		}
 	}
+
+
 
 	@Override
 	public void reset()

@@ -45,7 +45,7 @@ public class Piece
 		}
 	}
 
-	private Piece(PieceIndex pieceIndex, List<Cube> cubeList)
+	public Piece(PieceIndex pieceIndex, List<Cube> cubeList)
 	{
 		this.colourMask = CubeColor.getColorForIndex(pieceIndex.getIndex());
 		this.pieceIndex = pieceIndex;

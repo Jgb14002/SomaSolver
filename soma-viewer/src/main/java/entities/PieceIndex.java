@@ -1,6 +1,9 @@
 package entities;
 
+import graph.Direction;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import launcher.GeneralSettings;
@@ -27,6 +30,14 @@ public enum PieceIndex
 
 	@Getter
 	private final ResourceFile widgetTexture;
+
+	// {Direction.UP, Direction.DOWN, Direction.RIGHT}
+	// {Direction.LEFT, Direction.UP, Direction.UP}
+	// {Direction.LEFT, Direction.UP, Direction.LEFT}
+	// {Direction.LEFT, Direction.UP, Direction.DOWN, Direction.LEFT}
+	// {Direction.LEFT, Direction.UP, Direction.DOWN, Direction.BACKWARDS}
+	// {Direction.RIGHT, Direction.UP, Direction.BACKWARDS}
+	// {Direction.LEFT, Direction.UP, Direction.BACKWARDS}
 
 	@Nullable
 	public static PieceIndex getPieceFromIndex(int index)
