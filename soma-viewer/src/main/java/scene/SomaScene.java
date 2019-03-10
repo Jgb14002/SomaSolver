@@ -17,12 +17,10 @@ import gui.GridPanel;
 import gui.PieceWidget;
 import gui.UIElement;
 import input.Input;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
+
+import java.util.*;
+import java.util.concurrent.*;
+
 import launcher.GeneralSettings;
 import loaders.SolutionManager;
 import lombok.Getter;
@@ -52,8 +50,12 @@ public class SomaScene extends Scene
 	private final Map<PieceIndex, Piece> pieces = new HashMap<>();
 	private Piece selectedPiece;
 
+	private List<Piece> selectedPositions;
+	private int selectedIndex;
+
 	@Getter
 	private final ConcurrentLinkedQueue<Runnable> taskQueue = new ConcurrentLinkedQueue<>();
+	private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
 	SomaScene(ICamera camera)
 	{
@@ -102,6 +104,7 @@ public class SomaScene extends Scene
 		GUIShader.getInstance().cleanUp();
 		multisampleFbo.cleanUp();
 		outputFbo.cleanUp();
+		executorService.shutdown();
 	}
 
 	private int[][][] getLayout()
@@ -127,6 +130,45 @@ public class SomaScene extends Scene
 		{
 			return;
 		}
+
+
+		final PieceIndex index = selectedPiece.getPieceIndex();
+
+		if(selectedPositions != null)
+		{
+			selectedIndex = (selectedIndex < 0 || selectedIndex > selectedPositions.size() - 1) ? 0 : selectedIndex;
+
+			if(Input.isKeyPressed(GLFW_KEY_UP))
+			{
+				pieces.put(index, selectedPositions.get(selectedIndex));
+				selectedIndex++;
+			}
+
+			if(Input.isKeyPressed(GLFW_KEY_DOWN))
+			{
+				pieces.put(index, selectedPositions.get(selectedIndex));
+				selectedIndex--;
+			}
+		}
+		else
+		{
+			if(Input.isKeyPressed(GLFW_KEY_UP) || Input.isKeyPressed(GLFW_KEY_DOWN))
+			{
+				pieces.remove(selectedPiece.getPieceIndex());
+				CompletableFuture<GraphBuilder> asyncGraph = new CompletableFuture<>();
+
+				asyncGraph.whenComplete((graph, ex) -> taskQueue.add(() -> {
+					selectedPositions = graph.getPieces(selectedPiece.getPieceIndex());
+					if(!selectedPositions.isEmpty())
+					{
+						pieces.put(index, selectedPositions.get(0));
+					}
+				}));
+
+				executorService.submit(() -> asyncGraph.complete(new GraphBuilder(getLayout()).build()));
+			}
+		}
+
 
 		if (Input.isKeyPressed(GLFW_KEY_W))
 		{
@@ -226,6 +268,7 @@ public class SomaScene extends Scene
 						}
 
 						selectedPiece = pieces.get(index);
+						selectedPositions = null;
 					}
 					else
 					{
@@ -248,6 +291,7 @@ public class SomaScene extends Scene
 			SceneLoader.getEventBus().post(new PieceDeletedEvent(index));
 			pieces.remove(selectedPiece.getPieceIndex());
 			selectedPiece = null;
+			selectedPositions = null;
 
 			GridPanel panel = (GridPanel) uiElements.get(0);
 
