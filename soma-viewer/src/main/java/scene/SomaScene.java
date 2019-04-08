@@ -47,7 +47,7 @@ public class SomaScene extends Scene
 
 	private final List<UIElement> uiElements = new LinkedList<>();
 	@Getter
-	private final Map<PieceIndex, Piece> pieces = new HashMap<>();
+	private final Map<PieceIndex, Piece> pieces = new LinkedHashMap<>();
 	private Piece selectedPiece;
 
 	private List<Piece> selectedPositions;
