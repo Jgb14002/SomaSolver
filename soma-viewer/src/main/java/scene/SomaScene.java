@@ -138,13 +138,13 @@ public class SomaScene extends Scene
 		{
 			selectedIndex = (selectedIndex < 0 || selectedIndex > selectedPositions.size() - 1) ? 0 : selectedIndex;
 
-			if(Input.isKeyPressed(GLFW_KEY_UP))
+			if(Input.isKeyPressed(GLFW_KEY_UP) && selectedPositions.size() > 0)
 			{
 				pieces.put(index, selectedPositions.get(selectedIndex));
 				selectedIndex++;
 			}
 
-			if(Input.isKeyPressed(GLFW_KEY_DOWN))
+			if(Input.isKeyPressed(GLFW_KEY_DOWN) && selectedPositions.size() > 0)
 			{
 				pieces.put(index, selectedPositions.get(selectedIndex));
 				selectedIndex--;
