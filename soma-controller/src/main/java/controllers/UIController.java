@@ -11,14 +11,7 @@ import events.ControllerLinkEvent;
 import events.PieceAddedEvent;
 import events.PieceDeletedEvent;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -60,6 +53,7 @@ import loaders.SolutionManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import models.InstructionEntry;
 import models.PieceEntry;
 import models.SolutionEntry;
 import scene.SceneLoader;
@@ -122,7 +116,7 @@ public class UIController {
     private TextFlow outText;
     private File solverExportDir;
     private File replayFile;
-    private Map<Integer, int[][][]> importedStructure;
+    private List<List<Instruction>> importedInstructions = new LinkedList<>();
     private int importedIndex = -1;
 
     private Map<Integer, int[][][]> cachedStructure = new LinkedHashMap<>();
@@ -171,7 +165,7 @@ public class UIController {
 
         replayTable.getColumns().forEach(column -> {
             final TableColumn col = (TableColumn) column;
-            col.setCellValueFactory(new PropertyValueFactory<PieceEntry, String>(col.getText().toLowerCase()));
+            col.setCellValueFactory(new PropertyValueFactory<InstructionEntry, String>(col.getText().toLowerCase()));
         });
         replayTable.setSelectionModel(null);
 
@@ -316,18 +310,28 @@ public class UIController {
                 replayImportField.setText(path);
 
                 if (replayFile != null) {
-                    try (FileReader reader = new FileReader(replayFile)) {
-                        Gson gson = new Gson();
-                        importedStructure = gson.fromJson(reader, new TypeToken<LinkedHashMap<Integer, int[][][]>>() {
-                        }.getType());
-
+                    try (BufferedReader reader = new BufferedReader(new FileReader(replayFile))) {
                         final ObservableList tableItems = replayTable.getItems();
                         tableItems.clear();
 
+                        Gson gson = new Gson();
+
+                        String line;
+                        while((line = reader.readLine()) != null)
+                        {
+                            List<Instruction> ins = gson.fromJson(line, new TypeToken<LinkedList<Instruction>>(){}.getType());
+                            if(ins != null) {
+                                importedInstructions.add(ins);
+                                for (Instruction in : ins) {
+                                    tableItems.add(new InstructionEntry(in.getType(), in.getIndex() + 1));
+                                }
+                            }
+                        }
+
                         SceneLoader.getCurrentScene().reset();
-                        importedStructure.keySet().forEach(index -> tableItems.add(new PieceEntry(index + 1)));
                         alert("Solution Playback", "Successfully imported structure", Alert.AlertType.INFORMATION);
                         importedIndex = -1;
+
                     } catch (IOException e1) {
                         alertStackTrace(e1, "An error occurred while importing the requested structure.");
                         log("Import failed");
@@ -337,57 +341,18 @@ public class UIController {
             }
         });
         replayLoadButton.setOnAction(e -> {
-            if (importedStructure != null) {
-                solverTable.getItems().clear();
-                final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
-                scene.reset();
-                scene.getTaskQueue().add(() -> {
-                    importedStructure.forEach((k, v) ->
-                    {
-                        final PieceIndex index = PieceIndex.getPieceFromIndex(k);
-                        scene.getPieces().put(index, Piece.createFromData(index, v));
-                    });
-                });
-                log("Loaded structure from data file");
-                importedIndex = -1;
-            } else {
-                alert("Solution Playback", "You have not yet imported a data file.", Alert.AlertType.ERROR);
-            }
+
         });
         replayNextButton.setOnAction(e -> {
-            if (importedStructure != null) {
-                final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
-                scene.getTaskQueue().add(() -> {
+            if (!importedInstructions.isEmpty()) {
 
-                    if (importedIndex + 1 > importedStructure.size() - 1) {
-                        return;
-                    }
-
-                    importedIndex++;
-
-                    final Map.Entry<Integer, int[][][]> piece = getElementAt(importedStructure, importedIndex);
-                    final PieceIndex index = PieceIndex.getPieceFromIndex(piece.getKey());
-                    scene.getPieces().put(index, Piece.createFromData(index, piece.getValue()));
-
-                });
             } else {
                 alert("Solution Playback", "You have not yet imported a data file.", Alert.AlertType.ERROR);
             }
         });
         replayUndoButton.setOnAction(e -> {
-            if (importedStructure != null) {
-                final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
-                scene.getTaskQueue().add(() -> {
+            if (!importedInstructions.isEmpty()) {
 
-                    if (importedIndex < 0) {
-                        return;
-                    }
-
-                    final Map.Entry<Integer, int[][][]> piece = getElementAt(importedStructure, importedIndex);
-                    final PieceIndex index = PieceIndex.getPieceFromIndex(piece.getKey());
-                    scene.removePiece(index);
-                    importedIndex--;
-                });
             } else {
                 alert("Solution Playback", "You have not yet imported a data file.", Alert.AlertType.ERROR);
             }
