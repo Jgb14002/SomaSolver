@@ -6,12 +6,14 @@ import java.util.List;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 import scene.ICamera;
 import shaders.SimpleShader;
 
+@Slf4j
 public class Piece
 {
 	private static final SimpleShader shader = SimpleShader.getInstance();
@@ -138,12 +140,16 @@ public class Piece
 		for(Cube cube : cubes)
 		{
 			Vector3i position = cube.getGridPosition();
+			try {
+				int slice = 1 - position.y;
+				int row = position.z + 1;
+				int col = position.x + 1;
 
-			int slice = 1 - position.y;
-			int row = position.z + 1;
-			int col = position.x + 1;
-
-			data[slice][row][col] = 1;
+				data[slice][row][col] = 1;
+			} catch (ArrayIndexOutOfBoundsException e)
+			{
+				log.info("Piece::getRawData - Piece out of bounds, setting data to 0");
+			}
 		}
 
 		return data;
