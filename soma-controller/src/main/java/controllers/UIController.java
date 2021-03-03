@@ -10,25 +10,15 @@ import entities.PieceIndex;
 import events.ControllerLinkEvent;
 import events.PieceAddedEvent;
 import events.PieceDeletedEvent;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
+
+import java.io.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import export.Instruction;
+import export.InstructionType;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -63,6 +53,7 @@ import loaders.SolutionManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import models.InstructionEntry;
 import models.PieceEntry;
 import models.SolutionEntry;
 import scene.SceneLoader;
@@ -103,8 +94,6 @@ public class UIController
 	@FXML
 	private Button replayBrowseButton;
 	@FXML
-	private Button replayLoadButton;
-	@FXML
 	private Button replayResetButton;
 	@FXML
 	private TableView replayTable;
@@ -126,8 +115,11 @@ public class UIController
 	private TextFlow outText;
 	private File solverExportDir;
 	private File replayFile;
-	private Map<Integer, int[][][]> importedStructure;
-	private int importedIndex = -1;
+	private List<Instruction> importedInstructions = new LinkedList<>();
+	private int importedIndex = 0;
+
+	private Map<Integer, int[][][]> cachedStructure = new LinkedHashMap<>();
+	private String exportName;
 
 
 	public UIController()
@@ -144,6 +136,17 @@ public class UIController
 		replayFileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Soma Files (*.soma)", "*.soma"));
 	}
 
+	private static Map.Entry<Integer, int[][][]> getElementAt(Map<Integer, int[][][]> map, int index)
+	{
+		for (Map.Entry entry : map.entrySet())
+		{
+			if (index-- == 0)
+			{
+				return entry;
+			}
+		}
+		return null;
+	}
 
 	@FXML //After our fields are injected -> access to FXML fields
 	private void initialize()
@@ -177,9 +180,8 @@ public class UIController
 
 		replayTable.getColumns().forEach(column -> {
 			final TableColumn col = (TableColumn) column;
-			col.setCellValueFactory(new PropertyValueFactory<PieceEntry, String>(col.getText().toLowerCase()));
+			col.setCellValueFactory(new PropertyValueFactory<InstructionEntry, String>(col.getText().toLowerCase()));
 		});
-		replayTable.setSelectionModel(null);
 
 		explorerTable.getColumns().forEach(column -> {
 			final TableColumn col = (TableColumn) column;
@@ -266,7 +268,7 @@ public class UIController
 		solverExportButton.setOnAction(e -> {
 			if (solverExportDir != null)
 			{
-				if (solverTable.getItems().size() <= 0)
+				if (solverTable.getItems().isEmpty() && cachedStructure.isEmpty())
 				{
 					alert("Solution Solver", "There is no data to export. Try adding some pieces first.", Alert.AlertType.ERROR);
 					return;
@@ -279,37 +281,15 @@ public class UIController
 				dialog.setHeaderText(null);
 				dialog.setContentText("Save as:");
 
-				Optional<String> fileName = dialog.showAndWait();
+				Optional<String> fileName = (exportName == null) ? dialog.showAndWait() : Optional.of(exportName);
 				fileName.ifPresent(name -> {
+					exportName = name;
 					try
 					{
 						final File output = new File(solverExportDir, name.concat(".soma"));
-						boolean created = output.createNewFile();
+						output.createNewFile();
+						exportChanges(output);
 
-						if (created)
-						{
-							saveStructure(output);
-						}
-						else
-						{
-							Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-							Stage confirmStage = (Stage) alert.getDialogPane().getScene().getWindow();
-							confirmStage.getIcons().add(new Image(SomaController.class.getResource("/images/icon.png").toString()));
-
-							alert.setTitle("Export Warning");
-							alert.setHeaderText(null);
-							alert.setContentText("A file with this name already exists. Would you like to overwrite the data?");
-
-							Optional<ButtonType> result = alert.showAndWait();
-							if (result.isPresent() && result.get() == ButtonType.OK)
-							{
-								saveStructure(output);
-							}
-							else
-							{
-								log("Export cancelled");
-							}
-						}
 					}
 					catch (IOException e1)
 					{
@@ -346,7 +326,7 @@ public class UIController
 			solverTable.getItems().clear();
 		});
 		solverResetButton.setOnAction(e -> {
-			importedIndex = -1;
+			importedIndex = 0;
 			solverTable.getItems().clear();
 			SceneLoader.getCurrentScene().reset();
 			log("Reset current structure");
@@ -363,20 +343,31 @@ public class UIController
 				log.info("Replay - Importing replay file at: {}", path);
 				replayImportField.setText(path);
 
-				if(replayFile != null)
+				if (replayFile != null)
 				{
-					try(FileReader reader = new FileReader(replayFile))
+					try (BufferedReader reader = new BufferedReader(new FileReader(replayFile)))
 					{
-						Gson gson = new Gson();
-						importedStructure = gson.fromJson(reader, new TypeToken<LinkedHashMap<Integer, int[][][]>>(){}.getType());
-
 						final ObservableList tableItems = replayTable.getItems();
 						tableItems.clear();
 
+						Gson gson = new Gson();
+
+						String line;
+						while ((line = reader.readLine()) != null)
+						{
+							Instruction ins = gson.fromJson(line, Instruction.class);
+							if (ins != null)
+							{
+								importedInstructions.add(ins);
+								tableItems.add(new InstructionEntry(ins.getType(), ins.getIndex() + 1));
+							}
+						}
+
 						SceneLoader.getCurrentScene().reset();
-						importedStructure.keySet().forEach(index -> tableItems.add(new PieceEntry(index + 1)));
 						alert("Solution Playback", "Successfully imported structure", Alert.AlertType.INFORMATION);
-						importedIndex = -1;
+						importedIndex = 0;
+						solverTable.getItems().clear();
+
 					}
 					catch (IOException e1)
 					{
@@ -387,45 +378,13 @@ public class UIController
 				}
 			}
 		});
-		replayLoadButton.setOnAction(e -> {
-			if(importedStructure != null)
-			{
-				solverTable.getItems().clear();
-				final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
-				scene.reset();
-				scene.getTaskQueue().add(() -> {
-					importedStructure.forEach((k, v) ->
-					{
-						final PieceIndex index = PieceIndex.getPieceFromIndex(k);
-						scene.getPieces().put(index, Piece.createFromData(index, v));
-					});
-				});
-				log("Loaded structure from data file");
-				importedIndex = -1;
-			}
-			else
-			{
-				alert("Solution Playback", "You have not yet imported a data file.", Alert.AlertType.ERROR);
-			}
-		});
 		replayNextButton.setOnAction(e -> {
-			if(importedStructure != null)
+			if (!importedInstructions.isEmpty())
 			{
-				final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
-				scene.getTaskQueue().add(() -> {
-
-					if(importedIndex + 1 > importedStructure.size() - 1)
-					{
-						return;
-					}
-
-					importedIndex++;
-
-					final Map.Entry<Integer, int[][][]> piece = getElementAt(importedStructure, importedIndex);
-					final PieceIndex index = PieceIndex.getPieceFromIndex(piece.getKey());
-					scene.getPieces().put(index, Piece.createFromData(index, piece.getValue()));
-
-				});
+				Instruction ins = importedInstructions.get(importedIndex);
+				processInstruction(ins);
+				Platform.runLater(() -> selectRow(replayTable, importedIndex));
+				importedIndex = Math.min(importedInstructions.size() - 1, importedIndex + 1);
 			}
 			else
 			{
@@ -433,21 +392,18 @@ public class UIController
 			}
 		});
 		replayUndoButton.setOnAction(e -> {
-			if(importedStructure != null)
+			if (!importedInstructions.isEmpty())
 			{
-				final SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
-				scene.getTaskQueue().add(() -> {
-
-					if(importedIndex < 0)
+				importedIndex = Math.max(0, importedIndex - 1);
+				if (importedIndex < importedInstructions.size())
+				{
+					SceneLoader.getCurrentScene().reset();
+					for (int i = 0; i < importedIndex; i++)
 					{
-						return;
+						processInstruction(importedInstructions.get(i));
 					}
-
-					final Map.Entry<Integer, int[][][]> piece = getElementAt(importedStructure, importedIndex);
-					final PieceIndex index = PieceIndex.getPieceFromIndex(piece.getKey());
-					scene.removePiece(index);
-					importedIndex--;
-				});
+					Platform.runLater(() -> selectRow(replayTable, importedIndex));
+				}
 			}
 			else
 			{
@@ -457,7 +413,7 @@ public class UIController
 		replayResetButton.setOnAction(e -> {
 			SceneLoader.getCurrentScene().reset();
 			solverTable.getItems().clear();
-			importedIndex = -1;
+			importedIndex = 0;
 			log("Reset current structure");
 		});
 
@@ -481,7 +437,7 @@ public class UIController
 			int index = explorerTable.getSelectionModel().getSelectedIndex();
 			final int next = index + 1;
 
-			if(next >= explorerTable.getItems().size())
+			if (next >= explorerTable.getItems().size())
 			{
 				return;
 			}
@@ -502,60 +458,107 @@ public class UIController
 
 		});
 		explorerResetButton.setOnAction(e -> {
-			replayTable.getItems().clear();
 			solverTable.getItems().clear();
-			importedIndex = -1;
+			importedIndex = 0;
 			SceneLoader.getCurrentScene().reset();
 			log("Reset current structure");
 		});
 	}
 
-	private static Map.Entry<Integer, int[][][]> getElementAt(Map<Integer, int[][][]> map, int index) {
-		for (Map.Entry entry : map.entrySet()) {
-			if (index-- == 0) {
-				return entry;
-			}
+	private void processInstruction(Instruction ins)
+	{
+		SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
+		PieceIndex index = PieceIndex.getPieceFromIndex(ins.getIndex());
+		switch (ins.getType())
+		{
+			case ADD:
+				scene.getTaskQueue().add(() -> scene.addPiece(Piece.createFromData(index, ins.getData())));
+				break;
+			case MOVE:
+				scene.getTaskQueue().add(() -> scene.getPieces().replace(index, Piece.createFromData(index, ins.getData())));
+				break;
+			case REMOVE:
+				scene.getTaskQueue().add(() -> scene.getPieces().remove(index));
+				break;
+			case RESET:
+				scene.reset();
+				break;
 		}
-		return null;
 	}
 
 	private void loadSolution(int index)
 	{
-		replayTable.getItems().clear();
 		solverTable.getItems().clear();
-		importedIndex = -1;
+		importedIndex = 0;
 
 		SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
 		scene.getTaskQueue().add(() -> scene.loadSolution(index));
 		log(String.format("Loaded solution %d", index));
 	}
 
-	private void saveStructure(File file)
+	private void exportChanges(File file)
 	{
-		final Map<Integer, int[][][]> export = new LinkedHashMap<>();
-
 		SomaScene scene = (SomaScene) SceneLoader.getCurrentScene();
-		Map<PieceIndex, Piece> pieces = scene.getPieces();
+		Map<Integer, int[][][]> current = scene.getPieces().values().stream().collect(Collectors.toMap(p -> p.getPieceIndex().getIndex(), Piece::getRawData));
 
-		solverTable.getItems().forEach(entry -> {
-			int index = ((PieceEntry) entry).getPiece() - 1;
-			Piece piece = pieces.get(PieceIndex.getPieceFromIndex(index));
-			export.put(piece.getPieceIndex().getIndex(), piece.getRawData());
-		});
-
-		try (Writer writer = new FileWriter(file))
+		List<Instruction> instructions = getInstructions(current);
+		if (!instructions.isEmpty())
 		{
-			Gson gson = new GsonBuilder().create();
-			gson.toJson(export, writer);
+
+			try (Writer writer = new FileWriter(file, true))
+			{
+				Gson gson = new GsonBuilder().create();
+				for (Instruction ins : instructions)
+				{
+					writer.write(gson.toJson(ins).concat(System.lineSeparator()));
+				}
+			}
+			catch (IOException e)
+			{
+				alertStackTrace(e, "Unable to write data to file.");
+				log.error(e.getMessage());
+			}
+
+			log(String.format("Exported %d changes to %s", instructions.size(), file.getAbsolutePath()));
+
 		}
-		catch (IOException e)
+		else
 		{
-			alertStackTrace(e, "Unable to write data to file.");
-			log.error(e.getMessage());
+			alert("Solution Solver", "The current structure is identical to the last exported structure.", Alert.AlertType.WARNING);
+		}
+		cachedStructure = current;
+	}
+
+	private List<Instruction> getInstructions(Map<Integer, int[][][]> current)
+	{
+		List<Instruction> instructions = new LinkedList<>();
+
+		if (current.isEmpty())
+		{
+			instructions.add(new Instruction(InstructionType.RESET));
+		}
+		else
+		{
+			cachedStructure.forEach((k, v) -> {
+				if (!current.containsKey(k))
+				{
+					instructions.add(new Instruction(InstructionType.REMOVE, k));
+				}
+				else if (!Arrays.deepEquals(v, current.get(k)))
+				{
+					instructions.add(new Instruction(InstructionType.MOVE, k, current.get(k)));
+				}
+			});
+
+			current.forEach((k, v) -> {
+				if (!cachedStructure.containsKey(k))
+				{
+					instructions.add(new Instruction(InstructionType.ADD, k, v));
+				}
+			});
 		}
 
-		log(String.format("Exported structure to %s", file.getAbsolutePath()));
-		alert("Solution Solver", "The current structure has been successfully exported", Alert.AlertType.INFORMATION);
+		return instructions;
 	}
 
 	private void selectRow(TableView table, int index)
@@ -645,9 +648,9 @@ public class UIController
 	public void onPieceDeleted(PieceDeletedEvent event)
 	{
 		Platform.runLater(() -> {
-			final int index = event.getPieceIndex().getIndex() + 1;
-			solverTable.getItems().removeIf(entry -> ((PieceEntry) entry).getPiece() == index);
-			log(String.format("Piece %d was deleted", index));
+			final int index = event.getPieceIndex().getIndex();
+			solverTable.getItems().removeIf(entry -> ((PieceEntry) entry).getPiece() == index + 1);
+			log(String.format("Piece %d was deleted", index + 1));
 		});
 	}
 
@@ -655,9 +658,9 @@ public class UIController
 	public void onPieceAdded(PieceAddedEvent event)
 	{
 		Platform.runLater(() -> {
-			final int index = event.getPieceIndex().getIndex() + 1;
-			solverTable.getItems().add(new PieceEntry(index));
-			log(String.format("Piece %d was added", index));
+			final int index = event.getPieceIndex().getIndex();
+			solverTable.getItems().add(new PieceEntry(index + 1));
+			log(String.format("Piece %d was added", index + 1));
 		});
 	}
 

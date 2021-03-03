@@ -48,11 +48,11 @@
                            <children>
                               <TextField fx:id="replayImportField" editable="false" layoutX="14.0" layoutY="14.0" prefHeight="25.0" prefWidth="291.0" promptText="Solution File" />
                               <Button fx:id="replayBrowseButton" layoutX="316.0" layoutY="14.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="79.0" text="Browse" />
-                              <Button fx:id="replayLoadButton" layoutX="14.0" layoutY="272.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="79.0" text="Load" />
-                              <Button fx:id="replayResetButton" layoutX="104.0" layoutY="272.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="102.0" text="Reset Structure" />
+                              <Button fx:id="replayResetButton" layoutX="14.0" layoutY="272.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="192.0" text="Reset Structure" />
                               <TableView fx:id="replayTable" layoutX="14.0" layoutY="52.0" prefHeight="211.0" prefWidth="381.0">
                                  <columns>
-                                    <TableColumn editable="false" prefWidth="75.0" sortable="false" text="Piece" />
+                                    <TableColumn editable="false" prefWidth="37.5" sortable="false" text="Instruction" />
+                                    <TableColumn editable="false" prefWidth="37.5" sortable="false" text="Piece" />
                                  </columns>
                                  <columnResizePolicy>
                                     <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
